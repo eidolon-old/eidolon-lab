@@ -1,0 +1,27 @@
+buildscript {
+    ext.kotlinVersion = "0.12.613"
+
+    repositories {
+        jcenter()
+        mavenCentral()
+    }
+
+    dependencies {
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:${kotlinVersion}"
+        classpath "com.github.jengelman.gradle.plugins:shadow:1.2.1"
+    }
+}
+
+subprojects {
+    apply plugin: "java"
+    apply plugin: "kotlin"
+
+    repositories {
+        mavenCentral()
+    }
+
+    dependencies {
+        compile "org.jetbrains.kotlin:kotlin-runtime:${kotlinVersion}"
+        compile "org.jetbrains.kotlin:kotlin-stdlib:${kotlinVersion}"
+    }
+}

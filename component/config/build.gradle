@@ -1,4 +1,1 @@
-apply plugin: "application"
-apply plugin: "com.github.johnrengelman.shadow"
-
 mainClassName = "space.eidolon.component.config.ConfigPackage"

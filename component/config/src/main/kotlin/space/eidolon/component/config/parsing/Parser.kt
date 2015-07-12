@@ -11,86 +11,110 @@
 
 package space.eidolon.component.config.parsing
 
+import space.eidolon.component.config.ConfigObject
+import space.eidolon.component.config.ConfigString
+import space.eidolon.component.config.ConfigTrue
+import space.eidolon.component.config.ConfigValue
+
 /**
  * Parser
  *
  * @author Elliot Wright <elliot@elliotwright.co>
  */
 public class Parser(val input: String) {
-    private val context = ParserContext(input.toCharArray())
+    private val context = ParserContext(input.trim().toCharArray())
 
     private final val SOT_CHAR = '\u0002'
     private final val EOT_CHAR = '\u0003'
 
 
-    fun parse() {
+    fun parse(): ConfigObject {
         read()
-        skipWhitespace()
 
-        while (!isEndOfText()) {
-            readItem()
-            skipWhitespace()
-        }
-
-        println("End of input")
+        return readDocument()
     }
 
-    private fun readItem() {
+    private fun readDocument(): ConfigObject {
+        val result = ConfigObject()
+
+        while (!isEndOfText()) {
+            val kvp = readKvp()
+
+            result.put(kvp.first, kvp.second)
+        }
+
+        require(EOT_CHAR)
+
+        return result
+    }
+
+    private fun readProperty(): String {
+        context.clearCaptureBuffer()
+        skipWhitespace()
+
+        while (context.current != ':') {
+            if (isAlphaNumeric() || isUnderscore()) {
+                context.captureBuffer.append(context.current)
+                read()
+            } else {
+                expected("an alphanumeric string, or an underscore, got '" + context.current + "'")
+            }
+        }
+
+        return context.flushCaptureBuffer()
+    }
+
+    private fun readKvp(): Pair<String, ConfigValue> {
         val property = readProperty()
 
         require(':')
-        require(' ')
+
+        read()
         skipWhitespace()
 
         val value = readValue()
 
         read()
         skipWhitespace()
-        // todo: require either comma or new line
 
-        println(property)
-        println(value)
+        return Pair(property, value)
     }
 
-    private fun readProperty(): String {
-        startCapture()
-        read()
-        while (context.next != ':') {
-            if (isAlphaNumeric() || isUnderscore()) {
-                read()
-            } else {
-                expected("an alphanumeric string, or an underscore, got '" + context.current + "'")
-            }
-        }
-        return endCapture()
-    }
+    private fun readValue(): ConfigValue {
+        context.clearCaptureBuffer()
 
-    private fun readValue(): String {
-        var result:String = ""
-
-        when (context.current) {
-            '"' -> {
-                read()
-                startCapture()
-                while (context.next != '"') {
-                    read()
-                }
-                result = endCapture()
-                require('"')
-            }
-            '{' -> {
-                read()
-                startCapture()
-                while (context.next != '}') {
-                    read()
-                }
-                result = endCapture()
-                require('}')
-            }
+        return when (context.current) {
+            '"' -> readString()
+            '{' -> readObject()
             else -> {
-                // throw error("unexpected character")
+                 throw error("unexpected character")
             }
         }
+    }
+
+    private fun readString(): ConfigString {
+        read()
+
+        while (context.current != '"') {
+            context.captureBuffer.append(context.current)
+            read()
+        }
+
+        require('"')
+
+        return ConfigString(context.flushCaptureBuffer())
+    }
+
+    private fun readObject(): ConfigObject {
+        val result = ConfigObject()
+
+        read()
+        while (context.current != '}') {
+            val kvp = readKvp()
+
+            result.put(kvp.first, kvp.second)
+        }
+        require('}')
 
         return result
     }
@@ -107,19 +131,13 @@ public class Parser(val input: String) {
         return character == '\n' || character == '\r'
     }
 
-    private fun isNewLine(): Boolean = isNewLine(context.current)
-
     private fun isSpace(character: Char): Boolean {
         return character == ' '
     }
 
-    private fun isSpace(): Boolean = isSpace(context.current)
-
     private fun isTab(character: Char): Boolean {
         return character == '\t'
     }
-
-    private fun isTab(): Boolean = isTab(context.current)
 
     private fun isUnderscore(character: Char): Boolean {
         return character == '_'
@@ -131,10 +149,8 @@ public class Parser(val input: String) {
         return isNewLine(character) || isSpace(character) || isTab(character)
     }
 
-    private fun isWhitespace(): Boolean = isWhitespace(context.current)
-
     private fun skipWhitespace() {
-        while (isWhitespace()) {
+        while (isWhitespace(context.current)) {
             read()
         }
     }
@@ -169,26 +185,9 @@ public class Parser(val input: String) {
         context.current = context.buffer.get(context.cursor)
         context.cursor++
         context.lineCursor++
-
-        if (context.capturing) {
-            context.captureBuffer.append(context.current)
-        }
-    }
-
-    private fun startCapture() {
-        context.capturing = true
-        context.captureBuffer = StringBuilder()
-        context.captureBuffer.append(context.current)
-    }
-
-    private fun endCapture(): String {
-        context.capturing = false
-
-        return context.captureBuffer.toString()
     }
 
     private fun require(character: Char) {
-        read()
         if (context.current != character) {
             expected(character.toString())
         }
@@ -214,21 +213,21 @@ public class Parser(val input: String) {
         var current: Char = SOT_CHAR,
         var next: Char = EOT_CHAR,
 
-        var capturing: Boolean = false,
         var captureBuffer: StringBuilder = StringBuilder(),
 
         var cursor: Int = 0,
-        var savedCursor: Int = 0,
 
         var line: Int = 1,
         var lineCursor: Int = 0) {
 
-        fun restoreCursor(): Unit {
-            cursor = savedCursor
+        fun clearCaptureBuffer() {
+            captureBuffer.setLength(0)
         }
 
-        fun saveCursor(): Unit {
-            savedCursor = cursor
+        fun flushCaptureBuffer(): String {
+            val buffer = captureBuffer.toString()
+            clearCaptureBuffer()
+            return buffer
         }
     }
 

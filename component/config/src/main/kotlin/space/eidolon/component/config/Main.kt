@@ -11,9 +11,9 @@
 
 package space.eidolon.component.config
 
+import space.eidolon.component.config.io.ResourceFileReader
 import space.eidolon.component.config.parsing.Parser
 import space.eidolon.component.config.util.stripMargin
-import java.lang.StringBuilder
 
 /**
  * Main
@@ -21,26 +21,11 @@ import java.lang.StringBuilder
  * @author Elliot Wright <elliot@elliotwright.co>
  */
 fun main(args: Array<String>) {
-    val c1 = """
-        |string: "is a string"
-        |object: {
-        |    key: "value"
-        |    int: 1234567
-        |}
-        """.trim().stripMargin()
+    val reader = ResourceFileReader()
 
-    val c2 = """
-        |     string: "is a string"
-        |object: {
-        |    key: "value"
-        |    int: 1234567
-        |}
-        """.trim().stripMargin()
-
+    val c1 = reader.read("config/config.cs")
     val c1Parser = Parser(c1)
-    val c2Parser = Parser(c2)
+    val c1Result = c1Parser.parse()
 
-    c1Parser.parse()
-//    c2Parser.parse()
     println("Done")
 }

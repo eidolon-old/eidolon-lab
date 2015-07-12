@@ -24,7 +24,7 @@ fun main(args: Array<String>) {
     val reader = ResourceFileReader()
     val parser = Parser()
 
-    val input = reader.read("config/config.cs")
+    val input = reader.read("config/config.cfg")
     val r1Result = parser.parse(input)
     val r2Result = parser.parse(input)
 

@@ -22,10 +22,11 @@ import space.eidolon.component.config.util.stripMargin
  */
 fun main(args: Array<String>) {
     val reader = ResourceFileReader()
+    val parser = Parser()
 
-    val c1 = reader.read("config/config.cs")
-    val c1Parser = Parser(c1)
-    val c1Result = c1Parser.parse()
+    val input = reader.read("config/config.cs")
+    val r1Result = parser.parse(input)
+    val r2Result = parser.parse(input)
 
     println("Done")
 }
